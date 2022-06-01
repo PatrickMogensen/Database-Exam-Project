@@ -1,8 +1,6 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
-const saltRounds = 10;
-
 const {Sequelize, DataTypes} = require('sequelize');
 const initModels = require('../models/init-models');
 
@@ -15,23 +13,20 @@ const sequelize = new Sequelize('mysql://wu9imttjcpvru1yy:ggwi3bmzj8bwk0yy@i54jn
     });
 const models = initModels(sequelize);
 
-
-
-
-passport.use(new LocalStrategy({ usernameField: 'email' }, async (username, password, done) => {
+passport.use(new LocalStrategy({usernameField: 'email'}, async (username, password, done) => {
   try {
     const user = await models.user.findOne({where: {email: username}});
     if (!user) {
-      console.log("Invalid username or password")
-      return done(null, false, { message: 'Invalid username or password' });
+      console.log('Invalid username or password');
+      return done(null, false, {message: 'Invalid username or password'});
     }
 
-    bcrypt.compare(password,user.password, function(err, result) {
+    bcrypt.compare(password, user.password, function(err, result) {
       if (result === false) {
-        console.log("Invalid username or password")
-        return done(null, false, { message: 'Invalid username or password' });
-      } else{
-        console.log("logged in")
+        console.log('Invalid username or password');
+        return done(null, false, {message: 'Invalid username or password'});
+      } else {
+        console.log('logged in');
         return done(null, user);
       }
     });
@@ -40,7 +35,30 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async (username, pass
   }
 }));
 
-// eslint-disable-next-line no-underscore-dangle
+const isAdmin = function(req, res, next) {
+  try {
+    if (req.user.role) {
+      next();
+    } else {
+      res.send('you must be and admin to access this page');
+    }
+  } catch {
+    res.send('you must be and admin to access this page');
+  }
+};
+
+const loggedIn = function(req, res, next) {
+  try {
+    if (req.user) {
+      next();
+    } else {
+      res.send('you must be and admin to access this page');
+    }
+  } catch {
+    res.send('you must be and admin to access this page');
+  }
+};
+
 passport.serializeUser((user, done) => done(null, user._id));
 
 passport.deserializeUser(async (id, done) => {
@@ -53,6 +71,8 @@ passport.deserializeUser(async (id, done) => {
 });
 
 module.exports = {
+  loggedIn: loggedIn,
+  isAdmin: isAdmin,
   initialize: passport.initialize(),
   session: passport.session(),
   setUser: (req, res, next) => {
